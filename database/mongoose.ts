@@ -34,9 +34,19 @@ export async function connectToDatabase() {
         cached.conn = await cached.promise;
       } catch (err) {
         cached.promise = null;
+        const errorMessage = err instanceof Error ? err.message : String(err);
+        const isServerSelectionError = /MongooseServerSelectionError|Server selection timed out|Could not connect to any servers/i.test(errorMessage);
+
+        if (isServerSelectionError) {
+            throw new Error(
+                'MongoDB connection failed. If you use MongoDB Atlas, confirm Network Access includes your current IP (or allow 0.0.0.0/0 for development), verify the cluster is running, and re-check MONGODB_URI credentials.',
+                { cause: err instanceof Error ? err : undefined }
+            );
+        }
+
         throw err;
       }
     }
-console.log(`Connected to database ${process.env.NODE_ENV} - ${MONGODB_URI}`);
+console.log(`Connected to database ${process.env.NODE_ENV}`);
     return cached.conn;
 }
