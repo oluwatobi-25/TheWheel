@@ -4,9 +4,8 @@ import { useForm } from 'react-hook-form';
 import { Button } from '@/components/ui/button';
 import InputField from '@/components/forms/InputField';
 import FooterLink from '@/components/forms/FooterLink';
-// import {signInWithEmail, signUpWithEmail} from "@/lib/actions/auth.actions";
+import {signInWithEmail} from "@/lib/actions/auth.actions";
 import {toast} from "sonner";
-// import {signInEmail} from "better-auth/api";
 import {useRouter} from "next/navigation";
 
 const SignIn = () => {
@@ -25,14 +24,23 @@ const SignIn = () => {
 
     const onSubmit = async (data: SignInFormData) => {
         try {
-            // const result    = await signInWithEmail(data);
-            // if(result.success) router.push('/');
-            router.push('/');
+            const result = await signInWithEmail(data);
+            
+            if (result.success) {
+                toast.success('Signed in successfully!', {
+                    description: 'Welcome back to the dashboard.'
+                });
+                router.push('/');
+            } else {
+                toast.error('Sign in failed', {
+                    description: result.error || 'Invalid credentials. Please try again.'
+                });
+            }
         } catch (e) {
             console.error(e);
-            toast.error('Sign in failed', {
-                description: e instanceof Error ? e.message : 'Failed to sign in.'
-            })
+            toast.error('An unexpected error occurred', {
+                description: e instanceof Error ? e.message : 'Please try again later.'
+            });
         }
     }
 

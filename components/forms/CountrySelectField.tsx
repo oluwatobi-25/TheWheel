@@ -43,16 +43,19 @@ const CountrySelect = ({
     const countries = countryList().getData();
 
     // Helper function to get flag emoji
-    const getFlagEmoji = (countryCode: string) => {
-        const codePoints = countryCode
-            .toUpperCase()
-            .split('')
-            .map((char) => 127397 + char.charCodeAt(0));
-        return String.fromCodePoint(...codePoints);
-    };
+    const FlagImage = ({ countryCode }: { countryCode: string }) => (
+    <img
+        src={`https://flagcdn.com/w20/${countryCode.toLowerCase()}.png`}
+        srcSet={`https://flagcdn.com/w40/${countryCode.toLowerCase()}.png 2x`}
+        width="20"
+        height="15"
+        alt={countryCode}
+        style={{ display: 'inline-block', objectFit: 'cover' }}
+    />
+);
 
     return (
-        <Popover open={open} onOpenChange={setOpen}>
+             <Popover open={open} onOpenChange={setOpen}>
             <PopoverTrigger asChild>
                 <Button
                     variant='outline'
@@ -62,9 +65,9 @@ const CountrySelect = ({
                 >
                     {value ? (
                         <span className='flex items-center gap-2'>
-              <span>{getFlagEmoji(value)}</span>
-              <span>{countries.find((c) => c.value === value)?.label}</span>
-            </span>
+                            <FlagImage countryCode={value} />  {/* ✅ changed */}
+                            <span>{countries.find((c) => c.value === value)?.label}</span>
+                        </span>
                     ) : (
                         'Select your country...'
                     )}
@@ -102,9 +105,9 @@ const CountrySelect = ({
                                         )}
                                     />
                                     <span className='flex items-center gap-2'>
-                    <span>{getFlagEmoji(country.value)}</span>
-                    <span>{country.label}</span>
-                  </span>
+                                        <FlagImage countryCode={country.value} />  {/* changed */}
+                                        <span>{country.label}</span>
+                                    </span>
                                 </CommandItem>
                             ))}
                         </CommandGroup>
