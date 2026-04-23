@@ -8,7 +8,6 @@
 
 - **Real-time Market Data**  
   Stay updated with live quotes, interactive candle charts, and advanced baseline visualizations powered by Finnhub and TradingView.
-  
 - **AI-Powered Market Insights**  
   Leverages Gemini 2.5 Flash to summarize complex market news and provide tailored stock analysis directly to your dashboard.
 
@@ -39,7 +38,7 @@
 
 ### Prerequisites
 
-- Node.js 18+ 
+- Node.js 18+
 - MongoDB instance
 - Finnhub API Key
 - Inngest Cloud or Local Dev Server
@@ -48,18 +47,21 @@
 ### Installation
 
 1. **Clone the repository**
+
    ```bash
    git clone https://github.com/oluwatobi-25/TheWheel.git
    cd trade
    ```
 
 2. **Install dependencies**
+
    ```bash
    npm install
    ```
 
 3. **Set up environment variables**  
    Create a `.env` file in the root directory and add the following:
+
    ```env
    MONGODB_URI=your_mongodb_uri
    FINNHUB_API_KEY=your_finnhub_key
@@ -69,6 +71,7 @@
    ```
 
 4. **Run the development server**
+
    ```bash
    npm run dev
    ```
@@ -91,7 +94,3 @@ Signalist uses a modern asynchronous architecture to handle heavy data processin
 - **Caching**: Implements React `cache` and Next.js revalidation for optimized API calls to Finnhub.
 
 ---
-
-## License
-
-This project is licensed under the MIT License.
