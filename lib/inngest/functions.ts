@@ -1,11 +1,14 @@
+process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
 import {inngest} from "@/lib/inngest/client";
-import { NEWS_SUMMARY_EMAIL_PROMPT, PERSONALIZED_WELCOME_EMAIL_PROMPT} from "@/lib/inngest/prompt";
-import { sendNewsSummaryEmail, sendWelcomeEmail } from "../nodemailer";
-import { email } from "better-auth";
+import {NEWS_SUMMARY_EMAIL_PROMPT, PERSONALIZED_WELCOME_EMAIL_PROMPT} from "@/lib/inngest/prompt";
+import {sendNewsSummaryEmail, sendStockAlertEmail, sendWelcomeEmail} from "../nodemailer";
+import {email} from "better-auth";
 import {getAllUsersForNewsEmail} from "@/lib/actions/user.actions";
-import { getWatchlistSymbolsByEmail } from "@/lib/actions/watchlist.actions";
-import { getNews } from "@/lib/actions/finnhub.actions";
-import { getFormattedTodayDate } from "@/lib/utils";
+import {getWatchlistSymbolsByEmail} from "@/lib/actions/watchlist.actions";
+import {getNews, getWatchlistData} from "@/lib/actions/finnhub.actions";
+import {formatPrice, getFormattedTodayDate} from "@/lib/utils";
+import {Alert} from "@/database/models/alert.model";
+import {connectToDatabase} from "@/database/mongoose";
 
 export const sendSignUpEmail = inngest.createFunction(
     { id: 'sign-up-email',
@@ -22,36 +25,18 @@ export const sendSignUpEmail = inngest.createFunction(
         `
 
         const prompt = PERSONALIZED_WELCOME_EMAIL_PROMPT.replace('{{userProfile}}', userProfile)
- //  CHANGED: Replaced step.ai.infer with a plain step.run + direct Gemini REST API call
-        const introText = await step.run('generate-welcome-intro', async () => {
-    const https = require('https');
-    const agent = new https.Agent({ rejectUnauthorized: false }); // 👈 bypasses SSL check
 
-    const res = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${process.env.GEMINI_API_KEY}`,
-        {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            // @ts-ignore
-            agent, // 👈 pass the agent here
-            body: JSON.stringify({
-                contents: [
-                    {
-                        role: 'user',
-                        parts: [{ text: prompt }]
-                    }
-                ]
-            })
-        }
-    );
+        const response = await step.ai.infer('generate-welcome-intro', {
+            model: step.ai.models.gemini({ model: 'gemini-2.5-flash-lite' }),
+            body: {
+                contents: [{ role: 'user', parts: [{ text: prompt }]}]
+            }
+        });
 
-    const data = await res.json();
-    const part = data.candidates?.[0]?.content?.parts?.[0];
-    return (part && 'text' in part ? part.text : null)
-        || 'Thanks for joining Signalist. You now have the tools to track markets and make smarter moves.';
-});
+        const part = response.candidates?.[0]?.content?.parts?.[0];
+        const introText = (part && 'text' in part ? part.text : null)
+            || 'Thanks for joining Signalist. You now have the tools to track markets and make smarter moves.';
 
-        // ✅ UNCHANGED: This part stays the same, just uses introText directly now
         await step.run('send-welcome-email', async () => {
             const { data: { email, name } } = event;
             return await sendWelcomeEmail({ email, name, intro: introText });
@@ -64,10 +49,86 @@ export const sendSignUpEmail = inngest.createFunction(
     }
 );
 
+
  export const sendDailyNewsSummary = inngest.createFunction(
      { id: 'daily-news-summary' },
-     [ { event: 'app/send.daily.news' }, { cron: '0 12 * * *' } ],
+     [ { event: 'app/send.daily.news' }, { cron: '0 12 * * *' } ], // Reverted to 12 hours
      async ({ step }) => {
+        // --- Part 1: Check Stock Alerts ---
+        const alerts = await step.run('fetch-active-alerts', async () => {
+            await connectToDatabase();
+            const activeAlerts = await Alert.find({ isTriggered: false }).lean();
+            return JSON.parse(JSON.stringify(activeAlerts));
+        });
+
+        if (alerts && alerts.length > 0) {
+            const symbols = [...new Set(alerts.map((a: any) => a.symbol))];
+            const stockData = await step.run('fetch-current-prices', async () => {
+                return await getWatchlistData(symbols as string[]);
+            });
+
+            const priceMap = new Map(stockData.map(s => [s.symbol, s]));
+            const triggeredAlerts: any[] = [];
+
+            for (const alert of alerts) {
+                const currentData = priceMap.get(alert.symbol);
+                if (!currentData) continue;
+
+                const currentPrice = currentData.currentPrice || 0;
+                let triggered = false;
+
+                if (alert.alertType === 'upper' && currentPrice >= alert.threshold) {
+                    triggered = true;
+                } else if (alert.alertType === 'lower' && currentPrice <= alert.threshold) {
+                    triggered = true;
+                }
+
+                if (triggered) {
+                    triggeredAlerts.push({
+                        ...alert,
+                        currentPrice,
+                        priceFormatted: currentData.priceFormatted
+                    });
+                }
+            }
+
+            if (triggeredAlerts.length > 0) {
+                await step.run('process-triggered-alerts', async () => {
+                    const mongoose = await connectToDatabase();
+                    const db = mongoose?.connection.db;
+                    if (!db) throw new Error('MongoDB connection not found');
+
+                    for (const alert of triggeredAlerts) {
+                        try {
+                            const user = await db.collection('user').findOne({ id: alert.userId });
+                            if (!user || !user.email) continue;
+
+                            await sendStockAlertEmail({
+                                email: user.email,
+                                symbol: alert.symbol,
+                                company: alert.company,
+                                currentPrice: alert.priceFormatted,
+                                targetPrice: formatPrice(alert.threshold),
+                                type: alert.alertType,
+                                timestamp: new Date().toLocaleString()
+                            });
+
+                            await Alert.findByIdAndUpdate(alert._id, {
+                                isTriggered: true,
+                                triggeredAt: new Date(),
+                                lastPrice: alert.currentPrice
+                            });
+                        } catch (e) {
+                            console.error(`Error processing alert ${alert._id}:`, e);
+                        }
+                    }
+                });
+            }
+        }
+
+        // --- Part 2: Daily News Summary ---
+        // Note: For testing, this will also run every 60 seconds if cron is set to * * * * *
+        // In production, it should be reverted to 12 hours (0 12 * * *) or similar.
          // Step #1: Get all users for news delivery
         const users = await step.run('get-all-users', getAllUsersForNewsEmail)
 
@@ -131,6 +192,6 @@ export const sendSignUpEmail = inngest.createFunction(
                 )
             })
 
-        return { success: true, message: 'Daily news summary emails sent successfully' }
+        return { success: true, message: 'Daily news and alerts processed successfully' }
     }
 )

@@ -2,6 +2,9 @@ import React from 'react'
 import WatchlistTable from '@/components/WatchlistTable'
 import { getWatchlistByEmail } from "@/lib/actions/watchlist.actions";
 import { getWatchlistData, getNews } from "@/lib/actions/finnhub.actions";
+import { getAlertsByUserId } from "@/lib/actions/alert.actions";
+import { IAlert } from "@/database/models/alert.model";
+import AlertPanel from "@/components/AlertPanel";
 import { auth } from "@/lib/better-auth/auth";
 import { headers } from "next/headers";
 import { Star, Plus } from 'lucide-react';
@@ -13,15 +16,22 @@ const WatchlistPage = async () => {
     let watchlistData: StockWithData[] = [];
     let news: MarketNewsArticle[] = [];
     
+    let alerts: IAlert[] = [];
+    if (session?.user?.id) {
+        alerts = await getAlertsByUserId(session.user.id);
+    }
+    
     if (session?.user?.email) {
         const watchlist = await getWatchlistByEmail(session.user.email);
         const symbols = watchlist.map(i => i.symbol);
         
         if (symbols.length > 0) {
             watchlistData = await getWatchlistData(symbols);
-            news = await getNews(symbols);
+            const allNews = await getNews(symbols);
+            news = allNews.slice(0, 3); // Limit to 3 news articles
         } else {
-             news = await getNews();
+             const allNews = await getNews();
+             news = allNews.slice(0, 3); // Limit to 3 news articles
         }
     }
 
@@ -48,26 +58,16 @@ const WatchlistPage = async () => {
             {/* Header */}
             <div className="flex justify-between items-center">
                  <h1 className="text-3xl font-bold text-gray-100">Watchlist</h1>
-                 <Link href="/search" className="search-btn">
-                    Add Stock
-                 </Link>
             </div>
 
             {/* Main Content: Table & Alerts */}
-            <div className="watchlist-container">
-                <div className="watchlist">
-                    <WatchlistTable data={watchlistData} />
+            <div className="watchlist-container flex flex-col lg:flex-row gap-8">
+                <div className="watchlist flex-1">
+                    <WatchlistTable data={watchlistData} userId={session?.user?.id || ''} userEmail={session?.user?.email || ''} />
                 </div>
                 
-                {/* Alerts Sidebar - Placeholder */}
-                <div className="watchlist-alerts">
-                     <div className="flex justify-between items-center mb-6">
-                        <h2 className="text-2xl font-bold text-gray-100">Alerts</h2>
-                        <button className="search-btn text-sm py-1.5 px-3">Create Alert</button>
-                     </div>
-                     <div className="alert-list">
-                        <div className="alert-empty">No active alerts set.</div>
-                     </div>
+                <div className="lg:w-[400px]">
+                    <AlertPanel alerts={alerts} watchlistData={watchlistData} />
                 </div>
             </div>
 

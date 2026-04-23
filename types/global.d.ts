@@ -55,11 +55,6 @@ declare global {
         href: string;
     };
 
-    type SearchCommandProps = {
-        renderAs?: 'button' | 'text';
-        label?: string;
-        initialStocks: StockWithWatchlistStatus[];
-    };
 
     type WelcomeEmailData = {
         email: string;
@@ -132,7 +127,9 @@ declare global {
     };
 
     type WatchlistTableProps = {
-        watchlist: StockWithData[];
+        data: StockWithData[];
+        userId: string;
+        userEmail: string;
     };
 
     type StockWithData = {
@@ -169,11 +166,11 @@ declare global {
     };
 
     type SearchCommandProps = {
-        open?: boolean;
-        setOpen?: (open: boolean) => void;
         renderAs?: 'button' | 'text';
-        buttonLabel?: string;
-        buttonVariant?: 'primary' | 'secondary';
+        label?: string;
+        initialStocks: StockWithWatchlistStatus[];
+        userEmail?: string;
+        buttonVariant?: 'default' | 'destructive' | 'outline' | 'secondary' | 'ghost' | 'link';
         className?: string;
     };
 
@@ -215,6 +212,12 @@ declare global {
         threshold: number;
         changePercent?: number;
     };
+
+    type UserForNewsEmail = {
+        id: string;
+        email: string;
+        name: string;
+    }
 }
 
 export {};

@@ -1,5 +1,6 @@
 export const NAV_ITEMS = [
     { href: '/', label: 'Dashboard' },
+    { href: '/news', label: 'News' },
     { href: '/search', label: 'Search' },
     { href: '/watchlist', label: 'Watchlist' },
 ];
@@ -331,9 +332,8 @@ export const WATCHLIST_TABLE_HEADER = [
     'Company',
     'Symbol',
     'Price',
-    'Change',
+    'Change (%)',
     'Market Cap',
     'P/E Ratio',
     'Alert',
-    'Action',
 ];
