@@ -11,11 +11,11 @@ import {Alert} from "@/database/models/alert.model";
 import {connectToDatabase} from "@/database/mongoose";
 
 export const sendSignUpEmail = inngest.createFunction(
-    { id: 'sign-up-email',
-        retries: 2
-     },
-
-    { event: 'app/user.created'},
+    { 
+        id: 'sign-up-email',
+        retries: 2,
+        triggers: [{ event: 'app/user.created' }]
+    },
     async ({ event, step }) => {
         const userProfile = `
             - Country: ${event.data.country}
@@ -51,8 +51,10 @@ export const sendSignUpEmail = inngest.createFunction(
 
 
  export const sendDailyNewsSummary = inngest.createFunction(
-     { id: 'daily-news-summary' },
-     [ { event: 'app/send.daily.news' }, { cron: '0 12 * * *' } ], // Reverted to 12 hours
+     { 
+         id: 'daily-news-summary',
+         triggers: [ { event: 'app/send.daily.news' }, { cron: '0 12 * * *' } ]
+     },
      async ({ step }) => {
         // --- Part 1: Check Stock Alerts ---
         const alerts = await step.run('fetch-active-alerts', async () => {
@@ -67,7 +69,7 @@ export const sendSignUpEmail = inngest.createFunction(
                 return await getWatchlistData(symbols as string[]);
             });
 
-            const priceMap = new Map(stockData.map(s => [s.symbol, s]));
+            const priceMap = new Map((stockData as any[]).map((s: any) => [s.symbol, s]));
             const triggeredAlerts: any[] = [];
 
             for (const alert of alerts) {
