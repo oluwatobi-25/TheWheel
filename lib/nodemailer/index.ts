@@ -12,7 +12,8 @@ export const transporter = nodemailer.createTransport({
 export const sendWelcomeEmail = async ({ email, name, intro }: WelcomeEmailData) => {
     const htmlTemplate = WELCOME_EMAIL_TEMPLATE
         .replace('{{name}}', name)
-        .replace('{{intro}}', intro);
+        .replace('{{intro}}', intro)
+        .replace(/{{baseUrl}}/g, process.env.NEXT_PUBLIC_BASE_URL!);
 
     const mailOptions = {
         from: `"Signalist" <signalist@jsmastery.pro>`,
@@ -30,7 +31,8 @@ export const sendNewsSummaryEmail = async (
 ): Promise<void> => {
     const htmlTemplate = NEWS_SUMMARY_EMAIL_TEMPLATE
         .replace('{{date}}', date)
-        .replace('{{newsContent}}', newsContent);
+        .replace('{{newsContent}}', newsContent)
+        .replace(/{{baseUrl}}/g, process.env.NEXT_PUBLIC_BASE_URL!);
 
     const mailOptions = {
         from: `"Signalist News" <signalist@jsmastery.pro>`,
@@ -66,7 +68,8 @@ export const sendStockAlertEmail = async ({
     .replace(/{{company}}/g, company)
     .replace(/{{currentPrice}}/g, currentPrice)
     .replace(/{{targetPrice}}/g, targetPrice)
-    .replace(/{{timestamp}}/g, timestamp);
+    .replace(/{{timestamp}}/g, timestamp)
+    .replace(/{{baseUrl}}/g, process.env.NEXT_PUBLIC_BASE_URL!);
 
   const mailOptions = {
     from: `"Signalist Alerts" <signalist@jsmastery.pro>`,

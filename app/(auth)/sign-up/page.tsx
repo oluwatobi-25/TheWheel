@@ -9,7 +9,9 @@ import {CountrySelectField} from "@/components/forms/CountrySelectField";
 import FooterLink from "@/components/forms/FooterLink";
 import {signUpWithEmail} from "@/lib/actions/auth.actions";
 import {useRouter} from "next/navigation";
-import {toast} from "sonner";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { SignUpSchema } from "@/lib/validations";
+import { toast } from "sonner";
 
 const SignUp = () => {
     const router = useRouter()
@@ -19,6 +21,7 @@ const SignUp = () => {
         control,
         formState: { errors, isSubmitting },
     } = useForm<SignUpFormData>({
+        resolver: zodResolver(SignUpSchema),
         defaultValues: {
             fullName: '',
             email: '',
@@ -29,7 +32,7 @@ const SignUp = () => {
             preferredIndustry: 'Technology'
         },
         mode: 'onBlur'
-    }, );
+    });
 
     const onSubmit = async (data: SignUpFormData) => {
         try {
@@ -64,16 +67,14 @@ const SignUp = () => {
                     placeholder="John Doe"
                     register={register}
                     error={errors.fullName}
-                    validation={{ required: 'Full name is required', minLength: 2 }}
                 />
 
                 <InputField
                     name="email"
                     label="Email"
-                    placeholder="contact@jsmastery.com"
+                    placeholder="contact@signalist.com"
                     register={register}
                     error={errors.email}
-                    validation={{ required: 'Email name is required', pattern: /^\w+@\w+\.\w+$/, message: 'Email address is required' }}
                 />
 
                 <InputField
@@ -83,7 +84,6 @@ const SignUp = () => {
                     type="password"
                     register={register}
                     error={errors.password}
-                    validation={{ required: 'Password is required', minLength: 8 }}
                 />
 
                 <CountrySelectField

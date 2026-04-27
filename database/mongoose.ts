@@ -37,6 +37,5 @@ export async function connectToDatabase() {
         throw err;
       }
     }
-console.log(`Connected to database ${process.env.NODE_ENV} - ${MONGODB_URI}`);
     return cached.conn;
 }

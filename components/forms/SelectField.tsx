@@ -16,9 +16,6 @@ const SelectField = ({ name, label, placeholder, options, control, error, requir
             <Controller
                 name={name}
                 control={control}
-                rules={{
-                    required: required ? `Please select ${label.toLowerCase()}` : false,
-                }}
                 render={({ field }) => (
                     <Select value={field.value} onValueChange={field.onChange}>
                         <SelectTrigger className="select-trigger">

@@ -133,9 +133,6 @@ export const CountrySelectField = ({
             <Controller
                 name={name}
                 control={control}
-                rules={{
-                    required: required ? `Please select ${label.toLowerCase()}` : false,
-                }}
                 render={({ field }) => (
                     <CountrySelect value={field.value} onChange={field.onChange} />
                 )}

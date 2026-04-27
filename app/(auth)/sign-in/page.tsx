@@ -8,6 +8,9 @@ import {signInWithEmail} from "@/lib/actions/auth.actions";
 import {toast} from "sonner";
 import {useRouter} from "next/navigation";
 
+import { zodResolver } from "@hookform/resolvers/zod";
+import { SignInSchema } from "@/lib/validations";
+
 const SignIn = () => {
     const router = useRouter()
     const {
@@ -15,6 +18,7 @@ const SignIn = () => {
         handleSubmit,
         formState: { errors, isSubmitting },
     } = useForm<SignInFormData>({
+        resolver: zodResolver(SignInSchema),
         defaultValues: {
             email: '',
             password: '',
@@ -52,10 +56,9 @@ const SignIn = () => {
                 <InputField
                     name="email"
                     label="Email"
-                    placeholder="contact@jsmastery.com"
+                    placeholder="contact@signalist.com"
                     register={register}
                     error={errors.email}
-                    validation={{ required: 'Email is required', pattern: /^\w+@\w+\.\w+$/ }}
                 />
 
                 <InputField
@@ -65,7 +68,6 @@ const SignIn = () => {
                     type="password"
                     register={register}
                     error={errors.password}
-                    validation={{ required: 'Password is required', minLength: 8 }}
                 />
 
                 <Button type="submit" disabled={isSubmitting} className="yellow-btn w-full mt-5">

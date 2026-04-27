@@ -3,19 +3,32 @@
 import {auth} from "@/lib/better-auth/auth";
 import {inngest} from "@/lib/inngest/client";
 import {headers} from "next/headers";
+import { SignInSchema, SignUpSchema } from "../validations";
 
-export const signUpWithEmail = async ({ email, password, fullName, country, investmentGoals, riskTolerance, preferredIndustry }: SignUpFormData) => {
+export const signUpWithEmail = async (data: SignUpFormData) => {
     try {
+        const validatedData = SignUpSchema.safeParse(data);
+        if (!validatedData.success) {
+            return { success: false, error: validatedData.error.issues[0].message };
+        }
+
+        const { email, password, fullName, country, investmentGoals, riskTolerance, preferredIndustry } = validatedData.data;
+
         const response = await auth.api.signUpEmail({ 
             body: { email, password, name: fullName },
             headers: await headers()
         })
 
         if(response) {
-            await inngest.send({
-                name: 'app/user.created',
-                data: { email, name: fullName, country, investmentGoals, riskTolerance, preferredIndustry }
-            })
+            try {
+                await inngest.send({
+                    name: 'app/user.created',
+                    data: { email, name: fullName, country, investmentGoals, riskTolerance, preferredIndustry }
+                })
+            } catch (inngestError) {
+                console.error('Inngest event send failed:', inngestError);
+                // We don't fail the sign up if the background task fails
+            }
         }
 
         console.log('Sign up successful:', response);
@@ -26,8 +39,15 @@ export const signUpWithEmail = async ({ email, password, fullName, country, inve
     }
 }
 
-export const signInWithEmail = async ({ email, password }: SignInFormData) => {
+export const signInWithEmail = async (data: SignInFormData) => {
     try {
+        const validatedData = SignInSchema.safeParse(data);
+        if (!validatedData.success) {
+            return { success: false, error: validatedData.error.issues[0].message };
+        }
+
+        const { email, password } = validatedData.data;
+
         const response = await auth.api.signInEmail({ 
             body: { email, password },
             headers: await headers()
